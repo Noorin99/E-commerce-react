@@ -1,52 +1,58 @@
+import "./App.css";
 
-import './App.css';
-
-import React from 'react';
-import Homepage from './Pages/homepage/homepage';
-import ShopPage from './Pages/shop/shop';
-import {Route, Switch} from 'react-router-dom';
-import SignInAndSignUpPage from './Pages/sign-in-sign-up/sign-in-sign-up';
-import Header from './Components/header/header';
-import { auth } from './firebase/firebase.utils';
-
-
+import React from "react";
+import Homepage from "./Pages/homepage/homepage";
+import ShopPage from "./Pages/shop/shop";
+import { Route, Switch } from "react-router-dom";
+import SignInAndSignUpPage from "./Pages/sign-in-sign-up/sign-in-sign-up";
+import Header from "./Components/header/header";
+import { auth, createUserProfileDocument } from "./firebase/firebase.utils";
 
 class App extends React.Component {
-  constructor(){
+  constructor() {
     super();
 
     this.state = {
-      currentUser: null
+      currentUser: null,
     };
   }
-  
-  unsubscribeFromAuth = null 
+
+  unsubscribeFromAuth = null;
 
   componentDidMount() {
-    auth.onAuthStateChanged(user => {
-      this.setState({currentUser: user});
-    }
-    )
+    auth.onAuthStateChanged(async (userAuth) => {
+      if (userAuth) {
+        const userRef = await createUserProfileDocument(userAuth);
+        userRef.onSnapshot((snapShot) => {
+          this.setState({
+            currentUser: {
+              id: snapShot.id,
+              ...snapShot.data(),
+            },
+          });
+        });
+      }
+      // if user sign out, the state will be set to null
+      this.setState({ currentUser: userAuth });
+    });
   }
 
-  componentWillUnmount(){
+  componentWillUnmount() {
     this.unsubscribeFromAuth();
   }
 
   render() {
     return (
       <div className="App">
-        <Header currentUser={this.state.currentUser}/>
+        <Header currentUser={this.state.currentUser} />
         <Switch>
-        <Route exact path='/' component={Homepage} />
-        <Route exact path='/shop' component={ShopPage} />
-        <Route exact path='/signin' component={SignInAndSignUpPage} />
+          <Route exact path="/" component={Homepage} />
+          <Route exact path="/shop" component={ShopPage} />
+          <Route exact path="/signin" component={SignInAndSignUpPage} />
         </Switch>
       </div>
     );
-
-  };
-  
+  }
 }
 
 export default App;
